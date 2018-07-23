@@ -2,18 +2,18 @@
 
 ## General Procedure
 1) Add import/export portions to javascript files
-    - (optional) Clean up messy areas with es6/es7 syntax.
 2) Add necessary import to less files (if present)
 3) Create index file to combine folder files
 4) Continue down folder structure repeating the above steps until you reach leaf folders
 5) Walk back up tree and import subfolder index files into parent folder index file
+6) (optional) Clean up messy areas with es6/es7 syntax.
 
 # Step 1: Define Imports/Exports
 
 ## Summary
 In es6, modules are defined similar the node `require` api, and it'show you go about scaling javascript architecture in a modern, es6 environment. Unfortunately, since many browsers (inside of our support range) don't support es6 modules, we use build tools to transpile modern javascript to javascript that old browsers can run. The tools we're specifically using are **Babel.js** and **Webpack**.
 
-Babel is responsible for transpiling our modern javascript into backwards compatible javascript. Webpack is responsible for walking through our architecture and creating a bundle that represents everything a user will need to run the application in their browser. It's, essentially, a elegant way of doing what grunt has always done for us. It also uses es6 syntax to determing what the bundle should look like, which means, eventually, once browsers catch up, webpack can be entirely removed from the equation and browsers can handle bundling our code all by themselves. Or at least, we can dream, right?
+Babel is responsible for transpiling our modern javascript into backwards compatible javascript. Webpack is responsible for walking through our architecture and creating a bundle that represents everything a user will need to run the application in their browser. It's, essentially, a elegant way of doing what grunt has always done for us. It also uses es6 syntax to determing what the bundle should look like, which means that eventually, once browsers catch up, webpack can be entirely removed from the equation and browsers can handle bundling our code all by themselves. Or at least, we can dream, right?
 
 An important thing to understand here is that when using webpack, its a given that es6 is being used. We can decide _when_ and _when not_ to take advantage of new es6 features, but even the `import` and `export` api is, itself, an es6 spec. So, throughout this migration, we won't be deciding _if_ we should use es6, we'll be deciding _when_ we should use es6.
 
@@ -21,7 +21,7 @@ An important thing to understand here is that when using webpack, its a given th
 
 _(If you already understand the import/export api, you can skip this)_
 
-When we're performing this step, we basically isolate the essential "thing" that any given javascript file is creating or providing to the module and we denote it as an `export`. That can then be listed as an `import` in other files. For example `import component from './component.js'`, which is essentially saying "Make sure that my sibling file `component.js` is included in the production bundle, and let me access it in this file through variable `component`. Similarly, you can say mark mutliple things as `export` in any given file, and import multiple things with the syntax `import {a, b} from './component.js`. Which is saying, "I expect component.js to have marked two names variables, `a` and `b`, as exported variables, and I want to access them here."
+When we're performing this step, we basically isolate the essential "thing" that any given javascript file is creating or providing to the module and we denote it as an `export`. That can then be listed as an `import` in other files. For example `import component from './component.js'`, which is essentially saying "Make sure that my sibling file `component.js` is included in the production bundle, and let me access it in this file through the variable `component`". Similarly, you can mark mutliple things as `export` in any given file, and import multiple things from that file with the syntax `import {a, b} from './component.js`. Which is saying, "I expect component.js to have marked two named variables, `a` and `b`, as exported variables, and I want to access them here."
 
 ### Small example
 
@@ -39,17 +39,17 @@ export let a = 24;
 export let b = 78;
 ```
 
-Another file could say `import constantObject from './constants.js'`, and this would import the object listed at the top of `constants.js`. This is because that object was specified as the default export. If the importing file instead said `import {a, b} from './constants.js'`, then the other variales would be imported instead. The `{}` "brace" syntax is way to import specific, names exports. Whereas the "braceless" syntax says, "give me whatever the default export is and name it this variable. You can also import a specific, named export and rename it. Like so: `import {a as hoursInADay, b as threeDaysPlus4Hours} from 'constants.js'`, which is the equivalent of the last export, but the import is assigned to a different variable when used in the importing file.
+Another file could say `import constantObject from './constants.js'`, and this would import the object listed at the top of `constants.js`. This is because that object was specified as the default export. If the importing file instead said `import {a, b} from './constants.js'`, then the other variales would be imported instead. The `{}` "brace" syntax is a way to import specific, named exports. Whereas the "braceless" syntax says, "give me whatever the default export is and name it this variable." You can also import a specific, named export and rename it like so: `import {a as hoursInADay, b as threeDaysPlus4Hours} from 'constants.js'`. This is the equivalent of the previous export, but the import is assigned to a different variable when used in the importing file.
 
-You can also group all of a folders import/exports together by specifying an `index.js` file in any given foler. If I have a folder named `component`, I can create an `index.js` file that imports the contents of the folder and rexports them as a "grouped" object. Then, any other file can simply use the folder name in an import statement (`import './component'`) to access the `index.js` file. This is a good way of establishing code architecture hierarchy and organizing things in a way that can be accessed by other pieces of code in sensible ways.
+You can also group all of a folders import/exports together by specifying an `index.js` file in any given folder. If I have a folder named `component`, I can create an `index.js` file that imports the contents of the folder and rexports them as a "grouped" object. Then, any other file can simply use the folder name in an import statement (`import './component'`) to access the `index.js` file. This is a good way of establishing code architecture hierarchy and organizing things in a way that can be accessed by other pieces of code in sensible ways.
 
 ## Import/Exporting angular code
 
-Since angular wasn't written in a es6-based era, there's not a clear-cut defacto approach to composing angular apps with es6-module architecture. That being said, several reasonable approaches have immerged from the dev community, and here's an example of each angular "type" (service, component, etc), using es6 imports/exports.
+Since angular wasn't written in a es6-based era, there's not a clear-cut defacto approach to composing angular apps with es6-module architecture. That being said, several reasonable approaches have immerged from the dev community, so here's an example of each angular "type" (service, component, etc) using es6 imports/exports.
 
 ### In Depth Example
 
-For a good walkthrough, we'll take a real example from the `pubs` module and we'll walk through migrating it over to webpack/es6. We'll use `pubPublicationResultsView` (found under (`core` > `reusableComponents` > `misc`) as our specimen, because it has a subfolder and lots of different kinds of angular code, so it should work as a good example..
+For a good walkthrough, we'll take a real example from the `pubs` module and we'll walk through migrating it over to webpack/es6. We'll use `pubPublicationResultsView` (found under (`core` > `reusableComponents` > `misc`) as our specimen, because it has a subfolder and several different kinds of angular code, so it should work well as an example.
  
 #### File Structure
 ```| pubPulicationResultsView
@@ -66,11 +66,11 @@ For a good walkthrough, we'll take a real example from the `pubs` module and we'
    |--> pubPublicationResultsViewHelper.js
 ```
 
-First, lets go through the files in the root folder. Starting with the javascript, the component specifically. The order I typically go through is
+First, lets go through the files in the root folder. Starting with the javascript. The component, specifically. The order I typically migate files in is:
 
 1) Component
 2) HelperService
-3) Ant other miscelaneous Angular files (constants or services or filters)
+3) Other miscelaneous Angular files (constants or services or filters)
 4) Less files.
 
 #### Sample file
@@ -97,7 +97,7 @@ First, lets go through the files in the root folder. Starting with the javascrip
 })();
 ```
 
-First thing we can do is drop the immediately invoked function. That was just a method we were using to avoid accidentally putting variables on the global window object. However, es6 modules are inherently isolated in scope, so we don't have to worry about that. So,let's drop it.
+First thing we can do is drop the immediately invoked function. That was just a method we were using to avoid accidentally putting variables on the global window object. Since es6 modules are inherently isolated in scope, we don't have to worry about that. So, let's drop it.
 
 ```diff
 -(function () {
@@ -119,7 +119,7 @@ function pubPublicationResultsViewCtrl($element, $timeout, $filter, ...) {
 - })();
 ```
 
-Next we're going to remove the code registering the component definition with the angular module, we're going to do that work of tying the different pieces of code to the angular framework into the `index.js` file and leave that clutter out of our main code files. We're also going to mark the component definition object as our `export default`.
+Next we're going to remove the code registering the component definition with the angular module. We're going to move the work of tying the different pieces of code to the angular framework into the `index.js` file, so that we can leave clutter out of our main code files. We're also going to mark the component definition object as our `export default`.
 
 ```diff
 -angular
@@ -158,7 +158,7 @@ export default {
 function pubPublicationResultsViewCtrl($element, $timeout, $filter, ...) {}
 ```
 
-Notice that we didn't give `template` any assignment in the object expression, that's because, in es6, `{template}` is short hand for `{template: template}`. And since we imported our template under the variable name `template`, we can write it in the cleaner, shorthand syntax. In fact, we're going to take that a step further and rename our controller function just `controller`, the javascript scope is isolated by es6 modules, so we don't have to worry about any naming collisions, and it will make our component definition cleaner.
+Notice that we didn't give `template` any assignment in the object expression. That's because, in es6, `{template}` is short hand for `{template: template}`. Since we've imported our template under the variable name `template`, we can write it in this cleaner, shorthand syntax. In fact, we're going to take that a step further and rename our controller function to just be `controller`. The javascript scope is isolated by es6 modules, so we don't have to worry about any naming collisions, and it will make our component definition cleaner.
 
 ```diff
 import template from './pubPublicationResultsView.tpl.html';
@@ -191,7 +191,7 @@ Aww yeah. Das real nice. Let's move on to the helper now!
 })();
 ```
 
-Procedure here is very similar, except the main export of the file won't be an object, because this is a service, which is registered on an angular module as a function. So our service ends up looking like this:
+Procedure here is very similar, except the main export of the file won't be an object, because this is a service, which angular expects to be a function. So our service ends up looking like this:
 
 ```diff
 -(function() {
@@ -208,7 +208,7 @@ Procedure here is very similar, except the main export of the file won't be an o
 -})();
 ```
 
-Again, don't worry about registering the service on the actual angular module yet, we'll do that in the `index.js` file. For now just worry about exporting the function. Also, for some reason at some point we started adding `return service;` to the end of our services. But that's not supposed to be there. Angular factories are supposed to return an object. Angular services are constructor function. They add things to the `this` instance, but they don't return anything. So if you see `return service;` at the end of any services, remove it.
+Again, don't worry about registering the service on the actual angular module yet, we'll do that in the `index.js` file. For now just worry about exporting the function. Also, for some reason we started adding `return service;` to the end of our services at some point. That's not supposed to be there. Angular factories (different from services) are supposed to return an object, which may be where the confusion began. Angular services, however, are constructor function. They add things to the `this` instance, but they don't return anything. So, if you see `return service;` at the end of any services, remove it.
 
 Moving on to the directive!
 
@@ -254,13 +254,14 @@ Same charade here, except that a directive is a function which returns a factory
 ```
 
 #### Less files
+The last thing that needs to be dealt with in this folder is less files. Variables and mixins are no longer global, so if a file uses color variables, it needs to add `@import '~@pub/styles/variables';`, and if it uses mixins, then it should import `@import '~@pub/styles/mixins';`. Additionally, anything that uses a font-awesome icon needs `@import '~font-awesome/less/font-awesome';`, and icmoon icons need `@import '~@icomoon';`.
 
-The last thing that needs to be dealt with in this folder is less files. Variables and mixins are no longer global, if a file uses color variables, it needs to add `@import '~@pub/styles/variables';`, and if it uses mixins, then it should import `@import '~@pub/styles/mixins';`. Additionally, anything that uses a font-awesome icon needs `@import '~font-awesome/less/font-awesome';`, and icmoon icons need `@import '~@icomoon';`. So, in our case, `pub-publication-results-view.less` needs `'~@pub/styles/variables';` and `@import '~@icomoon';`. And `pub-publication-results-view.mobile.less` needs `@import '~@pub/styles/mixins';`.
+So, in our case, `pub-publication-results-view.less` needs `'~@pub/styles/variables';` and `@import '~@icomoon';`. And `pub-publication-results-view.mobile.less` needs `@import '~@pub/styles/mixins';`.
 
 #### Handling Subfolders
-This same process needs to be performed recursively down the folder structure in the case of nested components. So we'll need to do everything we just did above, but in `pubPublicationResultsFilters`. And then we need to use an `index.js` to register all folder contents to the angular module, and make the folder accessible to other areas of the app.
+In the case of nested components, this same process needs to be performed recursively down the folder structure. So we'll need to do everything we just did above, but in `pubPublicationResultsFilters`. Then we need to use an `index.js` to register all folder contents to the angular module, and make the folder accessible to other areas of the app.
 
-Here's what the `index.js` file for `pubPublicationResultsFilters` looks like:
+Here's what the `index.js` file for `pubPublicationResultsFilters` (the child folder) looks like:
 
 **pubPublicationResultsFilter/index.js**
 ```
@@ -274,9 +275,11 @@ export default module => {
 }
 ```
 
-This exports a function that, when provided with a module as an argument, will register `pubFilteringService` and `pubPublicationResultsFilters` onto the module. This was why we didn't worry about registering anything on the angular module. We do all the angular work here, and keep the actual code files as simple as possible. Small note, if no extension is provided to an import, `.js` is assumed.
+This exports a function that, when provided with an angular module as an argument, will register `pubFilteringService` and `pubPublicationResultsFilters` onto that module. This was why we didn't worry about registering anything to the angular module previously. We do all the angular work here, and keep the actual code files as simple as possible.
 
-Now we need to handle the parent folder index
+Small note: if no extension is provided to an import, `.js` is assumed.
+
+Now we need to handle the parent folder `index.js` file
 
 **pubPublicationResultsView/index.js**
 ```
@@ -301,7 +304,7 @@ export default module => {
 }
 ```
 
-Here, like the other index file, we export a function that, when provided with a module, registers local angular components on to the provided module. It also imports the function exported by `pubPublicationResultsFilter` and gives it the same module. Now anyone who imports `pubPubliationResultsView` and calls its registration function on their module can use all the filters, services, and components wthin.
+Like the other index file, we export a function that, when provided with an angular module, registers local angular components on to the provided module. It also imports the function exported by `pubPublicationResultsFilter` and provides it with the same module it was provided with. Now anyone who imports `pubPubliationResultsView` and calls its registration function with their angular module can use all the filters, services, and components within. They can also choose to _only_ import the `pubPublicationResultsFilters` folder instead, if they like.
 
 ### Miscellaneous Changes For Cleaner Code
 The next step I typically take is completely optional, but I've found has cleaned up our files _substantially_. I'll give you a few specific examples of changes I make, and then I'll provide the over all diff of the file before and after cleanup changes.
