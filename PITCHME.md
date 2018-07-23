@@ -397,7 +397,7 @@ Other times it looks like this
 I've been standardizing the way we do lifecycle hookes as I've touched files. All lifecycle hooks are named functions that go under private functions. If there is an initialzation function, its name is `initialize`. If there is an `update` function, it's named update. If there is a destroy function, it's named `cleanup`. If there is a postLink function, it's named `link`. If there is an update function but no initialization logic, for some odd reason, create an `initialize` function anyways and have it simply call `update()`. That way, if initialization logic is added later there will be an obvious place to put it.
 
 So it should always look like this:
-```
+```js
     $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
     $ctrl.$onChanges = componentHelperService.onChanges($ctrl);
     $ctrl.$postLink  = componentHelperService.postLink($element);
@@ -412,7 +412,7 @@ So it should always look like this:
 
 Or this:
 
-```
+```js
     $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
     $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
     $ctrl.$postLink  = componentHelperService.postLink($element);
@@ -432,7 +432,7 @@ Or this:
 
 Or this:
 
-```
+```js
     $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
     $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
     $ctrl.$postLink  = componentHelperService.postLink($element);
@@ -456,7 +456,7 @@ Or this:
 
 NOT this:
 
-```
+```js
     $ctrl.$onInit    = componentHelperService.onInit($ctrl, update);
     $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
     $ctrl.$postLink  = componentHelperService.postLink($element);
@@ -472,7 +472,7 @@ NOT this:
 
 Or this:
 
-```
+```js
     $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
     $ctrl.$onChanges = componentHelperService.onChanges($ctrl, initialize);
     $ctrl.$postLink  = componentHelperService.postLink($element);
@@ -485,3 +485,150 @@ Or this:
     }
 
 ```
+
+#### Cleaner callbacks
+
+One of Es6's biggest new features is arrow functions, which dramatically cleanup and simplify anonymous functions. A few examples:
+
+**es5 syntax**
+```js
+var someVar = null;
+var someList= null;
+somePromise().then(function(value) {
+        someList = value;
+        return someList.filter(function(listItem) {
+            return listItem.someCondition === true;
+        })
+    }).then(filteredList) {
+        somVar = filteredList[0]
+    });
+```
+
+**es6 syntax**
+```js
+let someVar = null;
+let someList = null;
+somePromise.then(value => {
+    someList = value;
+    return someList.filter(listItem => listItem.someCondition === true)
+}).then(filteredList => someVar = filteredList[0]);
+```
+
+It definitely helps clean things up. Note: the format `var => var = value` is only valid with a _single_ param used in a _single_ command. Multiple commands should use the braces like `var => { someCommand(); someOtherCommand()  }`, and multiple variables should be surrounded by parens, like `(var1, var2) => var1 + var2;`.
+
+Here's a real diff from a messy function I refactored to es6.
+
+```diff
+-    function setStepAttributes(commInfo) {
++    function setStepAttributes({finalReleaseId, step: {internalCode: stepCode}}) {
++       const { FINAL_RELEASE_SECTION } = communicationInternalCodes;
++       $ctrl.finalReleaseId = +finalReleaseId;
+-       $ctrl.finalReleaseId = +commInfo.finalReleaseId;
+-       return $ctrl.communication.getHeader()
+-           .then(function (header) {
+-               var currentReviewer,
+-                   activeStepHeaderData = header
+-                       .NavigationGroups.filter(function (s) {
+-                       return s.Code === communicationInternalCodes.FINAL_RELEASE_SECTION;
+-                   })[0]
+-                       .Steps.filter(function (s) {
+-                       return s.Code === commInfo.step.internalCode;
+-                   })[0];
++       return $ctrl.communication.getHeader().then(({NavigationGroups: sections}) => {
++           let currentReviewer,
++               {Contributors} = sections
++                   .filter(({Code}) => Code === FINAL_RELEASE_SECTION)[0].Steps
++                   .filter(({Code}) => Code === stepCode)[0];
+-           if (activeStepHeaderData.Contributors.length < 1) {
+-               currentReviewer = null;
+-           } else {
+-               currentReviewer = activeStepHeaderData.Contributors[0];
+-           }
++           currentReviewers = (Contributors.length < 1) ?  null : Contributors[0];
+-           $ctrl.reviewersForStep = activeStepHeaderData.Contributors;
++           $ctrl.reviewersForStep = Contributors;
+            return currentReviewer;
+        });
+    }
+```
+
+So the final before and after is:
+
+**before**
+```js
+    function setStepAttributes(commInfo) {
+       $ctrl.finalReleaseId = +commInfo.finalReleaseId;
+       return $ctrl.communication.getHeader()
+            .then(function (header) {
+                var currentReviewer,
+                    activeStepHeaderData = header
+                        .NavigationGroups.filter(function (s) {
+                        return s.Code === communicationInternalCodes.FINAL_RELEASE_SECTION;
+                    })[0]
+                        .Steps.filter(function (s) {
+                        return s.Code === commInfo.step.internalCode;
+                    })[0];
+            if (activeStepHeaderData.Contributors.length < 1) {
+                currentReviewer = null;
+            } else {
+                currentReviewer = activeStepHeaderData.Contributors[0];
+            }
+            $ctrl.reviewersForStep = activeStepHeaderData.Contributors;
+            return currentReviewer;
+        });
+    }
+```
+
+**after**
+```js
+    function setStepAttributes({finalReleaseId, step: {internalCode: stepCode}}) {
+       const { FINAL_RELEASE_SECTION } = communicationInternalCodes;
+       $ctrl.finalReleaseId = +finalReleaseId;
+       return $ctrl.communication.getHeader().then(({NavigationGroups: sections}) => {
+           let currentReviewer,
+               {Contributors} = sections
+                   .filter(({Code}) => Code === FINAL_RELEASE_SECTION)[0].Steps
+                   .filter(({Code}) => Code === stepCode)[0];
+           currentReviewers = (Contributors.length < 1) ?  null : Contributors[0];
+           $ctrl.reviewersForStep = Contributors;
+            return currentReviewer;
+        });
+    }
+```
+
+Which, not only is cleaner and more readable, but it's also about 40% fewer lines. You may have also noticed some odd assignment and parameter syntax in that last example, which leads us to our next subject.
+
+#### Destructuring
+
+Destructuring assignments is another big es6 feature. Basically, its the idea of using a pattern to perform a bunch of variable assignments at once. Here are a few examples:
+
+**Array destructuring**
+```js
+// es5 syntax
+let firstItem = array[0],
+    otherItem = array[4];
+
+// es6 syntax
+let [firstItem,,,otherItem] = array;
+```
+
+**Object Destructuring**
+```js
+//es5
+var code = StepObj.Code,
+    reviewers = StepObj.Contributors
+    mainReviewer = reviewers[0];
+
+// es6
+let {Code: code, Contributors: reviewers} = StepObj,
+    [mainReviewer] = reviewers;
+
+// or if we only want mainReviewer
+let {Contributors: [mainReviewer]} = StepObj
+```
+
+It's a very concise format and can be used to make a lot of our much more readable and a lot less busy work of assigning and reassigning fields from objects.
+
+You can also do this with arguments, which is what I did in the previous example. We didn't care about the whole commInfo object that was given to the function, we only wanted the `finalReleaseId` and `step.internalCode`. So, I destructured the parameter in the argument list to be `{finalReleaseId, step: {internalCode: stepCode}}`. Which says, "I want `finalReleaseId` from the object argument, and I want it available as `finalReleaseId` in this function (because I didn't specify a different name), and I also want the field `internalCode` from the `step` field, and I want it available in this function under the variable `stepCode`.
+
+Very usefule and very concise. For more information, go [here](https://wesbos.com/destructuring-objects/).
