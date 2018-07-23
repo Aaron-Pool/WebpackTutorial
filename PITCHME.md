@@ -306,10 +306,18 @@ export default module => {
 
 Like the other index file, we export a function that, when provided with an angular module, registers local angular components on to the provided module. It also imports the function exported by `pubPublicationResultsFilter` and provides it with the same module it was provided with. Now anyone who imports `pubPubliationResultsView` and calls its registration function with their angular module can use all the filters, services, and components within. They can also choose to _only_ import the `pubPublicationResultsFilters` folder instead, if they like.
 
+### Verifying Your Work
+
+Its good to run `npm run webpack` whenever you finished a large chunk of work. You can't really know it completely works, but you should ensure you don't get compilation errors. Every time I've run webpack after a large chunk of work it's thrown about 25 errors based on typos or imports I've missed.
+
+Also ensure that there's actually an import path from the root module file to the code you've just migrated, because if no file imports the code you just migrated is actually in the import tree that webpack walks through, it won't touch that code and, therefor, won't give you any relevant compilation errors about it.
+
 ### Miscellaneous Changes For Cleaner Code
 The next step I typically take is completely optional, but I've found has cleaned up our files _substantially_. I'll give you a few specific examples of changes I make, and then I'll provide the over all diff of the file before and after cleanup changes.
 
-There's two changes I make that are complete unrelated to es6. First, we're pretty inconsistent in the way we use our `ngInject` directive, which handles angular dependency injection. Sometimes we us
+#### Standardizing our usage of ngInject
+
+We're pretty inconsistent in the way we use our `ngInject` directive, which handles angular dependency injection. Sometimes we us
 
 ```
 function(serviceName) {
@@ -327,4 +335,16 @@ function (serviceName) {}
 
 So one small thing I did, just for consistency, was convert everything to the latter syntax.
 
-Secondly, we have a common design pattern to move complex business logic into a helper service named `{componentName}Helper`. This has been a good and usefule design pattern, but sometimes the service name becomes _really_ long, as in the example we're migrating right now. It makes line wrap much more common than is necessary through the file, so another thing I've done in every file I've touched is alias the helper service simply as the variable `helper` in each controller.
+#### `{componentName}Helper` name clutter
+
+We have a common design pattern to move complex business logic into a helper service named `{componentName}Helper`, that only contains no-side-effect functions. This has been a good and usefule design pattern, but sometimes the service name becomes _really_ long, in the example we used in this guide, the helper name is `pubPublicationResultsViewHelper`. WHEW! That's a pain, and it hurts readability and makes line wrap much more common than is necessary through the file. So another thing I've done in every file I've touched is alias the helper service simply as the variable `helper` in each controller.
+
+A.k.a
+
+```js
+function controller(pubReallyLongNameForComponentHelper) {
+    let helper = pubReallyLongNameForComponentHelper;
+}
+```
+
+And then find and replace every instance of `pubReallyLongNameForComponentHelper.{methodName}` with `helper.{methodName}`.
