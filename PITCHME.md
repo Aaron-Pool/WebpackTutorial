@@ -395,3 +395,93 @@ Other times it looks like this
 ```
 
 I've been standardizing the way we do lifecycle hookes as I've touched files. All lifecycle hooks are named functions that go under private functions. If there is an initialzation function, its name is `initialize`. If there is an `update` function, it's named update. If there is a destroy function, it's named `cleanup`. If there is a postLink function, it's named `link`. If there is an update function but no initialization logic, for some odd reason, create an `initialize` function anyways and have it simply call `update()`. That way, if initialization logic is added later there will be an obvious place to put it.
+
+So it should always look like this:
+```
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy();
+
+    // ...later in the code under *private functions*
+
+    function initialize() {
+        // some initialization code
+    }
+```
+
+Or this:
+
+```
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy();
+
+    // ...later in the code under *private functions*
+
+    function initialize() {
+        // some initialization code
+        update();
+    }
+
+    function update() {
+        // some update code
+    }
+```
+
+Or this:
+
+```
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy(cleanup);
+
+    // ...later in the code under *private functions*
+
+    function initialize() {
+        // some initialization code
+        update();
+    }
+
+    function update() {
+        // some update code
+    }
+
+    function cleanup() {
+        // some clean up code
+    }
+```
+
+NOT this:
+
+```
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl, update);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, update);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy();
+
+    // ...later in the code under *private functions*
+
+    function update() {
+        // some update code
+    }
+
+```
+
+Or this:
+
+```
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl, initialize);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, initialize);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy();
+
+    // ...later in the code under *private functions*
+
+    function initialize() {
+        // some update code
+    }
+
+```
