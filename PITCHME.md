@@ -313,7 +313,7 @@ Its good to run `npm run webpack` whenever you finished a large chunk of work. Y
 Also ensure that there's actually an import path from the root module file to the code you've just migrated, because if no file imports the code you just migrated is actually in the import tree that webpack walks through, it won't touch that code and, therefor, won't give you any relevant compilation errors about it.
 
 ### Miscellaneous Changes For Cleaner Code
-The next step I typically take is completely optional, but I've found has cleaned up our files _substantially_. I'll give you a few specific examples of changes I make, and then I'll provide the over all diff of the file before and after cleanup changes.
+The next step I typically take is completely optional, but I've found has cleaned up/standardized/decreased the line count of our codebase _substantially_.
 
 #### Standardizing our usage of ngInject
 
@@ -348,3 +348,50 @@ function controller(pubReallyLongNameForComponentHelper) {
 ```
 
 And then find and replace every instance of `pubReallyLongNameForComponentHelper.{methodName}` with `helper.{methodName}`.
+
+#### Standardize lifecycle hook formats
+
+Another area of inconsistency that is pretty easy to standardize, now that we're touching every file. Component lifecycle hooks currently are kind of varied in the way they're executed.
+
+Sometimes they look like this:
+
+```
+    $ctrl.$onInit   = componentHelperService.onInit($ctrl, function() {
+        // some initialization code,
+
+        // some other code
+    });
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, function() {
+        // some update code
+    });
+    $ctrl.$postLink = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy(function () {
+        // some cleanup code
+    });
+```
+
+Other times it looks like this
+
+```
+    $ctrl.$onInit   = componentHelperService.onInit($ctrl,  function() {
+        // some initialization code,
+
+        // some other code
+        updateThisComponent()
+    });
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl, updateThisComponent);
+    $ctrl.$postLink = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy(cleanup);
+
+    // ...later in the code under *private functions*
+
+    function update this component() {
+        // some update code
+    }
+
+    function cleanup() {
+        // clean up code
+    }
+```
+
+I've been standardizing the way we do lifecycle hookes as I've touched files. All lifecycle hooks are named functions that go under private functions. If there is an initialzation function, its name is `initialize`. If there is an `update` function, it's named update. If there is a destroy function, it's named `cleanup`. If there is a postLink function, it's named `link`. If there is an update function but no initialization logic, for some odd reason, create an `initialize` function anyways and have it simply call `update()`. That way, if initialization logic is added later there will be an obvious place to put it.
