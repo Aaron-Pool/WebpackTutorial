@@ -631,4 +631,59 @@ It's a very concise format and can be used to make a lot of our much more readab
 
 You can also do this with arguments, which is what I did in the previous example. We didn't care about the whole commInfo object that was given to the function, we only wanted the `finalReleaseId` and `step.internalCode`. So, I destructured the parameter in the argument list to be `{finalReleaseId, step: {internalCode: stepCode}}`. Which says, "I want `finalReleaseId` from the object argument, and I want it available as `finalReleaseId` in this function (because I didn't specify a different name), and I also want the field `internalCode` from the `step` field, and I want it available in this function under the variable `stepCode`.
 
-Very usefule and very concise. For more information, go [here](https://wesbos.com/destructuring-objects/).
+Very useful and very concise. For more information, go [here](https://wesbos.com/destructuring-objects/).
+
+#### Controllerless Components (Dumb Components)
+
+Often times, we create a component purely for the purpose of binding a template with styles, and perhaps passing down some data or callbacks. The component might look something like this:
+
+```js
+import template from './pubReviewReassign.tpl.html';
+export default {
+    template, controller,
+    bindings: { reassignReviewer: '&' },
+    require: { reviewerHelper: '^^pubReviewerHelper' },
+};
+
+/* @ngInject */
+function controller($element, componentHelperService) {
+    const $ctrl = this;
+
+    /****************************************
+     *        Controller Attributes         *
+     ****************************************/
+    /****************************************
+     *        Controller API                *
+     ****************************************/
+    /****************************************
+     *        Lifecycle Hooks               *
+     ****************************************/
+
+    $ctrl.$onInit    = componentHelperService.onInit($ctrl);
+    $ctrl.$onChanges = componentHelperService.onChanges($ctrl);
+    $ctrl.$postLink  = componentHelperService.postLink($element);
+    $ctrl.$onDestroy = componentHelperService.onDestroy();
+
+    /****************************************
+     *        API Functions                 *
+     ****************************************/
+    /****************************************
+     *        Private Functions             *
+     ****************************************/
+}
+```
+
+In this case *the controller can actually be ommitted*. In angular 1.5 and greater, the controller argument of a component object defaults to `angular.noop`. So, it's not a required field. Even our lifecycle hooks are unnecessary here, because their purpose is to use defensive binding to avoid a component mutating data it doesn't own. But since the component has no methods, it isn't even mutating data (*you shouldn't ever be mutating data in a template*).
+
+So, in this case, this component can actually be reduced to this:
+
+```js
+import template from './pubReviewReassign.tpl.html';
+export default {
+    template,
+    bindings: { reassignReviewer: '&' },
+    require: { reviewerHelper: '^^pubReviewerHelper' },
+};
+```
+
+Craaaazzzzy, right? This particular change can _majorly_ cut down our network bundle size!
